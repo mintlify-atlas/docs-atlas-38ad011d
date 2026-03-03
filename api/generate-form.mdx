@@ -1,0 +1,123 @@
+---
+title: 'Generate Form'
+description: 'Create a new form using AI-powered generation'
+---
+
+## Generate a Form with AI
+
+Create a new form by providing a natural language prompt. The AI will generate appropriate form fields, labels, and validation rules based on your description.
+
+### Endpoint
+
+```
+POST /api/forms/generate
+```
+
+### Authentication
+
+Requires Clerk authentication. The form will be associated with the authenticated user's account.
+
+### Request Body
+
+<ParamField path="prompt" type="string" required>
+  A natural language description of the form you want to create. Cannot be empty.
+  
+  Examples:
+  - "Create a contact form with name, email, and message"
+  - "Generate an event registration form with attendee details"
+  - "Make a job application form with personal info and resume upload"
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the form was generated successfully
+</ResponseField>
+
+<ResponseField name="formId" type="string">
+  Unique identifier for the generated form (UUID format)
+</ResponseField>
+
+<ResponseField name="slug" type="string">
+  URL-friendly slug for accessing the form publicly
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  The generated title of the form
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message: "Form generated successfully"
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-domain.com/api/forms/generate \
+  -H "Content-Type: application/json" \
+  -H "Cookie: __session=your-clerk-session" \
+  -d '{
+    "prompt": "Create a customer feedback form with name, email, rating out of 5, and comments"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "formId": "cm3x7y2z1a0b1c2d3e4f5",
+  "slug": "customer-feedback-abc123xyz",
+  "title": "Customer Feedback Form",
+  "message": "Form generated successfully"
+}
+```
+
+### Error Responses
+
+<Expandable title="401 Unauthorized">
+```json
+{
+  "error": "Unauthorized"
+}
+```
+Returned when the request is not authenticated with a valid Clerk session.
+</Expandable>
+
+<Expandable title="400 Bad Request">
+```json
+{
+  "error": "Prompt is required and cannot be empty"
+}
+```
+Returned when the `prompt` field is missing or empty.
+</Expandable>
+
+<Expandable title="500 Internal Server Error">
+```json
+{
+  "error": "Form generation failed"
+}
+```
+Returned when AI generation or database operation fails.
+</Expandable>
+
+### Implementation Details
+
+The endpoint performs the following steps:
+
+1. Validates the user's Clerk authentication session
+2. Validates the prompt is not empty
+3. Calls the AI service to generate a form schema from the prompt
+4. Validates the generated schema structure
+5. Creates a new form record in the database with `isPublished: false`
+6. Returns the form ID, slug, and title
+
+Source: `app/api/forms/generate/route.ts:6`
+
+### Next Steps
+
+After generating a form:
+- Use the `formId` to fetch full form details via [GET /api/forms/[id]](/api/manage-forms#get-form)
+- Use the `slug` to share a public URL: `https://your-domain.com/forms/{slug}`
+- Update the form's publish status via [PATCH /api/forms/[id]](/api/manage-forms#toggle-publish)

@@ -1,0 +1,376 @@
+---
+title: "AI-Powered Form Generation"
+description: "Generate fully functional forms from natural language descriptions using Groq AI"
+---
+
+FastForms uses AI to transform your plain English descriptions into complete, validated form schemas. Simply describe what you need, and the system generates all fields, validation rules, and options automatically.
+
+## How It Works
+
+The AI generation system is powered by the **Groq SDK** with the `llama-3.3-70b-versatile` model, designed specifically for structured JSON output.
+
+<Steps>
+  <Step title="Describe your form">
+    Users enter a natural language prompt describing the form they need. For example:
+    
+    - "Create a customer feedback form with name, email, rating, and comments"
+    - "Job application form with personal info, work experience, and file upload"
+    - "Event registration with attendee details and meal preferences"
+  </Step>
+
+  <Step title="AI processes the prompt">
+    The system sends your prompt to Groq AI with a specialized system prompt that ensures structured JSON output matching the form schema format.
+    
+    ```typescript
+    // lib/aiFormGeneration.ts:38-46
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 2000,
+      response_format: { type: 'json_object' }
+    });
+    ```
+  </Step>
+
+  <Step title="Schema validation">
+    The generated JSON is validated using Zod to ensure all fields meet requirements before creating the form in the database.
+    
+    ```typescript
+    // app/api/forms/generate/route.ts:22-23
+    const schema = await generateFormSchema(prompt);
+    const parsedSchema = validateFormSchema(schema);
+    ```
+  </Step>
+
+  <Step title="Form creation">
+    The validated form is saved to PostgreSQL via Prisma with a unique slug and set to unpublished by default.
+    
+    ```typescript
+    // app/api/forms/generate/route.ts:25-32
+    const form = await prisma.forms.create({
+      data: {
+        userId,
+        title: parsedSchema.title,
+        fields: parsedSchema.fields,
+        isPublished: false,
+      },
+    });
+    ```
+  </Step>
+</Steps>
+
+## Supported Field Types
+
+The AI can generate 9 different field types, each with appropriate validation and options:
+
+<Accordion title="Text Fields">
+  **Type:** `text`
+  
+  Basic text input with optional placeholder and validation.
+  
+  ```json
+  {
+    "id": "full_name",
+    "type": "text",
+    "label": "Full Name",
+    "required": true,
+    "placeholder": "Enter your full name"
+  }
+  ```
+</Accordion>
+
+<Accordion title="Email Fields">
+  **Type:** `email`
+  
+  Email input with built-in HTML5 validation.
+  
+  ```json
+  {
+    "id": "email_address",
+    "type": "email",
+    "label": "Email Address",
+    "required": true,
+    "placeholder": "you@example.com"
+  }
+  ```
+</Accordion>
+
+<Accordion title="Number Fields">
+  **Type:** `number`
+  
+  Numeric input with optional min/max validation.
+  
+  ```json
+  {
+    "id": "age",
+    "type": "number",
+    "label": "Age",
+    "required": true,
+    "validation": {
+      "min": 0,
+      "max": 100
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Date Fields">
+  **Type:** `date`
+  
+  Date picker input.
+  
+  ```json
+  {
+    "id": "birth_date",
+    "type": "date",
+    "label": "Date of Birth",
+    "required": true
+  }
+  ```
+</Accordion>
+
+<Accordion title="Textarea Fields">
+  **Type:** `textarea`
+  
+  Multi-line text input for longer responses.
+  
+  ```json
+  {
+    "id": "comments",
+    "type": "textarea",
+    "label": "Additional Comments",
+    "required": false,
+    "placeholder": "Share your thoughts..."
+  }
+  ```
+</Accordion>
+
+<Accordion title="Select Dropdowns">
+  **Type:** `select`
+  
+  Dropdown with predefined options.
+  
+  ```json
+  {
+    "id": "country",
+    "type": "select",
+    "label": "Country",
+    "required": true,
+    "options": ["USA", "Canada", "UK", "Australia"]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Radio Buttons">
+  **Type:** `radio`
+  
+  Single selection from visible options.
+  
+  ```json
+  {
+    "id": "rating",
+    "type": "radio",
+    "label": "How satisfied are you?",
+    "required": true,
+    "options": ["Very Satisfied", "Satisfied", "Neutral", "Unsatisfied"]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Checkboxes">
+  **Type:** `checkbox`
+  
+  Multiple selections allowed.
+  
+  ```json
+  {
+    "id": "interests",
+    "type": "checkbox",
+    "label": "Select your interests",
+    "required": false,
+    "options": ["Sports", "Music", "Reading", "Travel"]
+  }
+  ```
+</Accordion>
+
+<Accordion title="File Upload">
+  **Type:** `file`
+  
+  File upload input.
+  
+  ```json
+  {
+    "id": "resume",
+    "type": "file",
+    "label": "Upload Resume",
+    "required": true
+  }
+  ```
+</Accordion>
+
+## Example Prompts
+
+<Tabs>
+  <Tab title="Customer Feedback">
+    **Prompt:**
+    ```
+    Create a customer feedback form with name, email, 
+    satisfaction rating (1-5 stars), product quality rating, 
+    and a comments section
+    ```
+    
+    **Generated Form:**
+    - Full Name (text, required)
+    - Email (email, required)
+    - Satisfaction Rating (radio, 1-5 stars)
+    - Product Quality (select, Excellent/Good/Fair/Poor)
+    - Comments (textarea, optional)
+  </Tab>
+
+  <Tab title="Event Registration">
+    **Prompt:**
+    ```
+    Event registration form with attendee name, email, 
+    number of guests, meal preference (vegetarian, 
+    non-vegetarian, vegan), and dietary restrictions
+    ```
+    
+    **Generated Form:**
+    - Attendee Name (text, required)
+    - Email Address (email, required)
+    - Number of Guests (number, required)
+    - Meal Preference (radio, 3 options)
+    - Dietary Restrictions (textarea, optional)
+  </Tab>
+
+  <Tab title="Job Application">
+    **Prompt:**
+    ```
+    Job application form with personal details, position 
+    applying for, years of experience, skills (checkboxes), 
+    and resume upload
+    ```
+    
+    **Generated Form:**
+    - Full Name (text, required)
+    - Email (email, required)
+    - Position (select, multiple roles)
+    - Years of Experience (number, required)
+    - Skills (checkbox, multiple options)
+    - Resume (file, required)
+  </Tab>
+</Tabs>
+
+## AI System Prompt
+
+The AI uses a carefully crafted system prompt to ensure consistent, valid output:
+
+```typescript
+// lib/aiFormGeneration.ts:10-34
+const systemPrompt = `
+You are a form schema generator.
+Generate a JSON form schema based on the user's requirements.
+
+Return ONLY valid JSON in the following format:
+{
+  "title": "Form Title",
+  "fields": [
+  {
+    "id" : "unique_field_id",
+    "type": "text" | "number" | "email" | "date" | "select" | "checkbox" | "radio" | "textarea" | "file",
+    "label": "Field Label",
+    "required": true | false,
+    "placeholder": "Placeholder text",
+    "options": ["Option 1", "Option 2"] // Only for select, checkbox, radio types
+    "validation": {
+    "min" : 0,
+    "max" : 100,
+  }
+}  ]
+}
+Support the following field types: text, number, email, date, select, checkbox, radio.
+Make IDs unique and descriptive.
+Ensure the JSON is well-formed.
+`;
+```
+
+<Note>
+  The `response_format: { type: 'json_object' }` parameter ensures Groq always returns valid JSON, reducing parsing errors.
+</Note>
+
+## Error Handling
+
+The system handles multiple error scenarios:
+
+<Warning>
+  **Common Errors:**
+  - Empty or missing prompt → 400 Bad Request
+  - Invalid JSON from AI → Form generation failed
+  - Schema validation failure → Specific validation error
+  - Unauthorized access → 401 Unauthorized
+</Warning>
+
+```typescript
+// lib/aiFormGeneration.ts:59-62
+catch (error) {
+  console.log("Groq API error : ", error);
+  throw new Error("Error in generating form schema");
+}
+```
+
+## Schema Validation
+
+All generated schemas are validated using Zod before database insertion:
+
+```typescript
+// lib/validations.ts:4-28
+const FormFieldSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum([
+    "text", "email", "date", "number", "textarea",
+    "select", "radio", "checkbox", "file"
+  ]),
+  label: z.string().min(1),
+  placeholder: z.string().optional(),
+  required: z.boolean().optional(),
+  options: z.array(z.string()).optional(),
+  validation: z.object({
+    min: z.number().optional(),
+    max: z.number().optional(),
+    minLength: z.number().optional(),
+    maxLength: z.number().optional(),
+  }).optional(),
+});
+```
+
+<Tip>
+  The validator ensures that select, radio, and checkbox fields always have options, and that all field IDs are unique.
+</Tip>
+
+## API Endpoint
+
+**POST** `/api/forms/generate`
+
+**Request Body:**
+```json
+{
+  "prompt": "Create a contact form with name, email, and message"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "formId": "cm123abc",
+  "slug": "contact-form-abc123",
+  "title": "Contact Form",
+  "message": "Form generated successfully"
+}
+```
+
+**Implementation:** `app/api/forms/generate/route.ts`

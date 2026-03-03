@@ -1,0 +1,191 @@
+---
+title: Introduction to FastForms
+description: AI-powered form builder that creates custom forms in seconds
+---
+
+# Welcome to FastForms
+
+FastForms is an AI-powered form builder that transforms natural language descriptions into fully functional forms. Simply describe what you need, and our AI generates a complete form with the right field types, validation, and structure.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create your first AI-generated form in under 2 minutes
+  </Card>
+  <Card title="Authentication" icon="lock" href="/authentication">
+    Learn how sign up and sign in works with Clerk
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the FastForms API endpoints
+  </Card>
+  <Card title="Form Responses" icon="chart-bar" href="/features/response-collection">
+    Collect, view, and export form submissions
+  </Card>
+</CardGroup>
+
+## How It Works
+
+FastForms uses Groq's LLaMA 3.3 70B model to generate form schemas from your text descriptions. The AI understands your requirements and creates appropriate field types, validations, and options.
+
+<Steps>
+  <Step title="Describe Your Form">
+    Tell FastForms what kind of form you need in plain English. For example: "Contact form with name, email, and message"
+  </Step>
+  
+  <Step title="AI Generates Schema">
+    Our AI analyzes your description and creates a complete form schema with appropriate field types (text, email, textarea, select, radio, checkbox, number, date)
+  </Step>
+  
+  <Step title="Preview & Publish">
+    Review your generated form in preview mode, then publish it to get a shareable link
+  </Step>
+  
+  <Step title="Collect Responses">
+    Share your form link and start collecting responses. View submissions in your dashboard or export to CSV
+  </Step>
+</Steps>
+
+## Key Features
+
+### AI-Powered Form Generation
+
+FastForms leverages Groq's LLaMA model to intelligently generate form schemas. The AI determines:
+- **Field types** based on your description (email fields for email, textarea for messages, etc.)
+- **Validation rules** (required fields, min/max values for numbers)
+- **Field options** for select dropdowns, radio buttons, and checkboxes
+- **Placeholder text** to guide form users
+
+<CodeGroup>
+```typescript AI Form Generation
+import Groq from "groq-sdk";
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+const completion = await groq.chat.completions.create({
+  messages: [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt }
+  ],
+  model: "llama-3.3-70b-versatile",
+  temperature: 0.7,
+  max_tokens: 2000,
+  response_format: { type: 'json_object' }
+});
+```
+
+```json Example Generated Schema
+{
+  "title": "Contact Form",
+  "fields": [
+    {
+      "id": "full_name",
+      "type": "text",
+      "label": "Full Name",
+      "required": true,
+      "placeholder": "Enter your full name"
+    },
+    {
+      "id": "email_address",
+      "type": "email",
+      "label": "Email Address",
+      "required": true,
+      "placeholder": "your@email.com"
+    },
+    {
+      "id": "message",
+      "type": "textarea",
+      "label": "Message",
+      "required": true,
+      "placeholder": "Tell us what you need..."
+    }
+  ]
+}
+```
+</CodeGroup>
+
+### Response Collection & Management
+
+Every form you create automatically gets:
+- **Unique shareable URL** (`/f/{slug}`) for public access
+- **Response dashboard** to view all submissions
+- **Response count** displayed on your dashboard
+- **Timestamp tracking** for each submission
+
+<Note>
+  Forms must be published before they can accept responses. Unpublished forms are only visible in preview mode.
+</Note>
+
+### Data Export
+
+Export all form responses to CSV format with a single click. The export includes:
+- All field values from each submission
+- Submission timestamps
+- Properly formatted headers based on field IDs
+
+```typescript Export Endpoint
+// GET /api/forms/{id}/export?format=csv
+const response = await axios.get(`/api/forms/${formId}/export`);
+const blob = new Blob([response.data], { type: "text/csv" });
+```
+
+### User Dashboard
+
+Your personal dashboard shows:
+- All forms you've created
+- Response count for each form
+- Creation dates
+- Quick access to form responses
+- Form deletion (with cascade delete of all responses)
+
+<Warning>
+  Deleting a form permanently removes all associated responses. This action cannot be undone.
+</Warning>
+
+## Supported Field Types
+
+FastForms supports a comprehensive set of field types:
+
+| Field Type | Use Case | Example |
+|------------|----------|----------|
+| `text` | Short text input | Name, address, job title |
+| `email` | Email addresses with validation | Contact email |
+| `textarea` | Long-form text | Messages, descriptions, feedback |
+| `number` | Numeric input with validation | Age, quantity, price |
+| `date` | Date selection | Birth date, appointment date |
+| `select` | Single choice from dropdown | Country, category |
+| `radio` | Single choice from visible options | Yes/No, size selection |
+| `checkbox` | Multiple selections | Interests, preferences |
+
+## Who Should Use FastForms?
+
+<CardGroup cols={2}>
+  <Card title="Product Managers" icon="briefcase">
+    Quickly create user research surveys, feedback forms, and feature requests without developer help
+  </Card>
+  
+  <Card title="Marketers" icon="megaphone">
+    Build lead capture forms, event registration, and customer feedback forms in seconds
+  </Card>
+  
+  <Card title="Developers" icon="code">
+    Prototype form structures rapidly or integrate form generation into your applications via API
+  </Card>
+  
+  <Card title="Small Businesses" icon="shop">
+    Create contact forms, order forms, and customer surveys without technical expertise
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+FastForms is built with modern, production-ready technologies:
+
+- **Framework**: Next.js 16 with App Router
+- **Authentication**: Clerk for secure user management
+- **Database**: PostgreSQL with Prisma ORM
+- **AI Model**: Groq (LLaMA 3.3 70B)
+- **Styling**: Tailwind CSS
+- **Validation**: Zod for schema validation
+
+<Tip>
+  Ready to create your first form? Head to the [Quickstart guide](/quickstart) to get started in under 2 minutes.
+</Tip>

@@ -1,0 +1,324 @@
+---
+title: Authentication
+description: Learn how authentication works in FastForms using Clerk
+---
+
+# Authentication
+
+FastForms uses [Clerk](https://clerk.com) for authentication and user management. Clerk provides secure, production-ready authentication with minimal setup and excellent developer experience.
+
+## Overview
+
+Every form you create is tied to your user account. This means:
+
+- Forms are private to the creator by default
+- Only you can view, edit, or delete your forms
+- Only you can access responses to your forms
+- Form exports are protected by user authentication
+
+<Note>
+  Published forms are publicly accessible via their unique slug (`/f/{slug}`), but only authenticated form owners can view responses or manage the form.
+</Note>
+
+## How It Works
+
+Clerk is integrated at the root layout level, wrapping the entire application:
+
+```typescript app/layout.tsx
+import { ClerkProvider } from "@clerk/nextjs";
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
+  );
+}
+```
+
+This ensures authentication state is available throughout your FastForms session.
+
+## Sign Up
+
+Creating a FastForms account is quick and secure:
+
+<Steps>
+  <Step title="Access Sign Up">
+    Navigate to the FastForms homepage and click the "Sign Up" button. Clerk handles the entire registration flow.
+  </Step>
+  
+  <Step title="Choose Sign Up Method">
+    Clerk supports multiple sign-up options:
+    
+    - **Email & Password**: Traditional email registration
+    - **Google**: Sign up with your Google account
+    - **GitHub**: Sign up with your GitHub account
+    - **Other OAuth Providers**: Additional social login options
+    
+    <Tip>
+      OAuth providers (like Google and GitHub) offer the fastest sign-up experience - just one click!
+    </Tip>
+  </Step>
+  
+  <Step title="Email Verification">
+    If you sign up with email and password, Clerk sends a verification email. Click the verification link to activate your account.
+    
+    <Note>
+      OAuth sign-ups (Google, GitHub) don't require additional email verification since the provider already verified your email.
+    </Note>
+  </Step>
+  
+  <Step title="Complete Setup">
+    After verification, you're automatically signed in and redirected to your dashboard. You can immediately start creating forms.
+  </Step>
+</Steps>
+
+## Sign In
+
+Returning users can sign in using any method they originally registered with:
+
+<Steps>
+  <Step title="Access Sign In">
+    Click the "Sign In" button on the FastForms homepage.
+  </Step>
+  
+  <Step title="Enter Credentials">
+    Depending on how you registered:
+    
+    - **Email users**: Enter your email and password
+    - **OAuth users**: Click your OAuth provider button (Google, GitHub, etc.)
+  </Step>
+  
+  <Step title="Access Your Dashboard">
+    After successful sign-in, you're redirected to `/dashboard` where you can see all your forms and their response counts.
+  </Step>
+</Steps>
+
+<Warning>
+  If you originally signed up with Google, you must sign in with Google. Email/password sign-in won't work for OAuth accounts.
+</Warning>
+
+## Protected Routes & API Endpoints
+
+FastForms uses Clerk's server-side authentication to protect sensitive routes and API endpoints.
+
+### Form Generation
+
+The form generation endpoint requires authentication:
+
+```typescript app/api/forms/generate/route.ts
+import { auth } from "@clerk/nextjs/server";
+
+export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" }, 
+      { status: 401 }
+    );
+  }
+  
+  // Generate form and associate with userId
+  const form = await prisma.forms.create({
+    data: {
+      userId,
+      title: parsedSchema.title,
+      fields: parsedSchema.fields,
+      isPublished: false,
+    },
+  });
+}
+```
+
+### Viewing Forms
+
+When you request your forms from the dashboard:
+
+```typescript app/api/getAllForms/route.ts
+const { userId } = await auth();
+
+if (!userId) {
+  return NextResponse.json(
+    { error: "Unauthorized" },
+    { status: 401 }
+  );
+}
+
+// Only fetch forms belonging to this user
+const forms = await prisma.forms.findMany({
+  where: { userId },
+  include: { _count: { select: { responses: true } } }
+});
+```
+
+### Export Protection
+
+Form exports are protected to ensure only the form creator can download responses:
+
+```typescript app/api/forms/[id]/export/route.ts
+import { auth } from "@clerk/nextjs/server";
+
+export async function GET(request: NextRequest) {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+  
+  const form = await prisma.forms.findUnique({
+    where: { id },
+    select: { userId: true }
+  });
+  
+  // Verify ownership
+  if (form.userId !== userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+  
+  // Proceed with export
+}
+```
+
+## User-Specific Features
+
+Authentication enables these personalized features:
+
+### Personal Dashboard
+
+Your dashboard (`/dashboard`) shows only forms you've created:
+
+```typescript app/dashboard/page.tsx
+const [forms, setForms] = useState<Form[]>([]);
+
+useEffect(() => {
+  const fetchForms = async () => {
+    // Fetches only forms belonging to authenticated user
+    const response = await axios.get("/api/getAllForms");
+    setForms(response.data.forms);
+  };
+  fetchForms();
+}, []);
+```
+
+Each form displays:
+- Form title
+- Response count
+- Creation date
+- Delete button (with confirmation)
+
+### Response Management
+
+Only form owners can access response data:
+
+```typescript
+// Protected endpoint: GET /api/forms/{formId}/responses
+const { userId } = await auth();
+
+const form = await prisma.forms.findUnique({
+  where: { id: formId },
+  select: { userId: true }
+});
+
+// Verify ownership before returning responses
+if (form.userId !== userId) {
+  return NextResponse.json(
+    { error: "Unauthorized" },
+    { status: 401 }
+  );
+}
+```
+
+### Form Ownership
+
+Each form in the database includes a `userId` field:
+
+```prisma prisma/schema.prisma
+model Forms {
+  id          String           @id @default(cuid())
+  userId      String
+  title       String
+  fields      Json
+  isPublished Boolean          @default(false)
+  slug        String           @unique @default(uuid())
+  createdAt   DateTime         @default(now())
+  responses   FormsResponses[]
+
+  @@index([userId])
+}
+```
+
+This enables:
+- Filtering forms by user
+- Enforcing ownership in API endpoints
+- Tracking who created each form
+
+## Public vs Private Access
+
+FastForms distinguishes between authenticated and public access:
+
+| Route | Access | Purpose |
+|-------|--------|----------|
+| `/dashboard` | Authenticated | View your forms |
+| `/generate` | Authenticated | Create new forms |
+| `/forms/{formId}` | Authenticated (owner) | Preview and manage your form |
+| `/forms/{formId}/responses` | Authenticated (owner) | View form responses |
+| `/f/{slug}` | Public | Anyone can submit responses |
+
+<Tip>
+  The public form submission page (`/f/{slug}`) doesn't require authentication, making it easy to share forms with anyone. However, only you can see the responses.
+</Tip>
+
+## Session Management
+
+Clerk automatically handles:
+
+- **Session persistence**: Stay logged in across browser sessions
+- **Session refresh**: Automatically refresh expired sessions
+- **Multi-tab sync**: Sign out in one tab, all tabs update
+- **Secure tokens**: JWT-based authentication tokens
+
+## Security Best Practices
+
+FastForms follows security best practices:
+
+1. **Server-side authentication**: All protected API routes verify authentication server-side using `auth()` from Clerk
+2. **Ownership verification**: Every form operation checks that the authenticated user owns the resource
+3. **No client-side secrets**: API keys and secrets never exposed to the browser
+4. **HTTPS only**: All authentication flows use secure HTTPS connections
+
+<Warning>
+  Never share your account credentials. If you suspect unauthorized access, change your password immediately through Clerk's user profile management.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Form" icon="wand-magic-sparkles" href="/quickstart">
+    Now that you understand authentication, create your first AI-generated form
+  </Card>
+  
+  <Card title="API Authentication" icon="key" href="/api/overview">
+    Learn how to authenticate API requests for programmatic form creation
+  </Card>
+  
+  <Card title="AI Form Generation" icon="wand-magic-sparkles" href="/features/ai-generation">
+    Learn how the AI generates forms from natural language
+  </Card>
+  
+  <Card title="Form Management" icon="folder" href="/features/form-management">
+    Manage your forms with the dashboard
+  </Card>
+</CardGroup>

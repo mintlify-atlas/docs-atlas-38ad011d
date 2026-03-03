@@ -1,0 +1,291 @@
+---
+title: Best Practices
+description: Expert tips for creating effective forms and managing responses in FastForms
+---
+
+Get the most out of FastForms with these proven strategies for form creation, response management, and data handling.
+
+## Writing Effective AI Prompts
+
+FastForms uses AI to generate form schemas from natural language prompts. Follow these best practices to get optimal results:
+
+<Steps>
+  <Step title="Be Specific and Descriptive">
+    Describe exactly what information you need to collect. Instead of "contact form," try "contact form with full name, email address, phone number, and message."
+    
+    ```text
+    Good: "Employee onboarding form with full name, email, start date, department selection, and emergency contact information"
+    
+    Bad: "Onboarding form"
+    ```
+  </Step>
+
+  <Step title="Specify Field Types When Needed">
+    While the AI can infer field types, being explicit helps ensure accuracy:
+    
+    ```text
+    "Registration form with:
+    - Full name (text input)
+    - Email address (email field)
+    - Birth date (date picker)
+    - Country (dropdown selection)
+    - Subscribe to newsletter (checkbox)"
+    ```
+  </Step>
+
+  <Step title="Indicate Required Fields">
+    Mention which fields are mandatory to help the AI set proper validation:
+    
+    ```text
+    "Survey with required fields for name and email, plus optional feedback text area"
+    ```
+  </Step>
+
+  <Step title="Include Options for Selection Fields">
+    For dropdowns, radio buttons, or checkboxes, list the options:
+    
+    ```text
+    "T-shirt order form with size selection (Small, Medium, Large, XL) and color choices (Red, Blue, Black, White)"
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+The AI understands context! You can describe your form's purpose and let it infer appropriate fields. For example, "event registration form for a tech conference" will generate relevant fields automatically.
+</Tip>
+
+## Form Design Best Practices
+
+### Choose the Right Field Types
+
+FastForms supports 9 field types. Select the appropriate type for better user experience:
+
+<Accordion title="Available Field Types">
+  | Field Type | Use Case | Example |
+  |-----------|----------|----------|
+  | **text** | Short single-line responses | Name, address, job title |
+  | **email** | Email addresses with built-in validation | Contact email, username |
+  | **textarea** | Long-form text responses | Comments, feedback, descriptions |
+  | **number** | Numeric values | Age, quantity, price |
+  | **date** | Date selection | Birth date, event date, deadline |
+  | **select** | Single choice from dropdown | Country, department, category |
+  | **radio** | Single choice with visible options | Yes/No, gender, priority level |
+  | **checkbox** | Multiple selections allowed | Interests, features, preferences |
+  | **file** | File uploads | Documents, images, attachments |
+</Accordion>
+
+### Required Fields Strategy
+
+<Warning>
+Don't make too many fields required! Each required field increases form abandonment rates.
+</Warning>
+
+Mark fields as required based on these criteria:
+
+- **Critical for processing**: Email for contact forms, name for registrations
+- **Legal requirements**: Age verification, terms acceptance
+- **Essential for service delivery**: Shipping address for orders
+
+Keep optional fields for:
+- Supplementary information
+- Marketing preferences
+- Additional context
+
+### Validation Options
+
+FastForms supports validation constraints at the field level:
+
+<CodeGroup>
+```json Field Validation Schema
+{
+  "id": "age",
+  "type": "number",
+  "label": "Age",
+  "required": true,
+  "validation": {
+    "min": 18,
+    "max": 120
+  }
+}
+```
+
+```json Text Length Validation
+{
+  "id": "bio",
+  "type": "textarea",
+  "label": "Biography",
+  "validation": {
+    "minLength": 50,
+    "maxLength": 500
+  }
+}
+```
+</CodeGroup>
+
+**Available validation options:**
+- `min` / `max` - For number fields (value range)
+- `minLength` / `maxLength` - For text/textarea fields (character count)
+
+<Tip>
+Use validation to improve data quality. For example, set `min: 10000, max: 99999` for a 5-digit zip code number field.
+</Tip>
+
+### Selection Field Requirements
+
+<Note>
+**Important**: Select, radio, and checkbox fields MUST have options defined. The schema validator will reject forms where these field types lack options.
+</Note>
+
+Always provide at least 2 options for selection fields:
+
+```json
+{
+  "id": "t_shirt_size",
+  "type": "select",
+  "label": "T-Shirt Size",
+  "required": true,
+  "options": ["Small", "Medium", "Large", "XL", "XXL"]
+}
+```
+
+## Response Management Tips
+
+### Viewing Responses
+
+Access responses by navigating to your form's detail page and clicking "View Responses" or going directly to `/forms/[formId]/responses`.
+
+Each response shows:
+- Submission timestamp
+- All field values
+- Field labels and IDs
+
+<Tip>
+Responses are displayed in reverse chronological order (newest first) for easier monitoring of recent submissions.
+</Tip>
+
+### Monitoring Form Activity
+
+Best practices for staying on top of responses:
+
+1. **Regular Check-ins**: Set a schedule to review responses (daily, weekly, etc.)
+2. **Export Frequently**: Download CSV exports to archive responses
+3. **Track Trends**: Monitor the response count to gauge form effectiveness
+4. **Quick Identification**: Use the submission timestamp to correlate with events
+
+## Data Export and Backup Recommendations
+
+FastForms includes CSV export functionality for preserving and analyzing your data.
+
+### When to Export
+
+<Steps>
+  <Step title="Regular Backups">
+    Export responses weekly or monthly as a backup strategy. CSV files are universally compatible and easy to archive.
+  </Step>
+
+  <Step title="Before Major Changes">
+    Always export before unpublishing or deleting a form to preserve historical data.
+  </Step>
+
+  <Step title="For Analysis">
+    Export to CSV for analysis in Excel, Google Sheets, or data analysis tools.
+  </Step>
+
+  <Step title="Data Migration">
+    Export when you need to move data to another system or CRM.
+  </Step>
+</Steps>
+
+### Export Format
+
+CSV exports include:
+- All response data with field IDs as column headers
+- Submission timestamps in ISO format
+- Normalized data structure (each response is one row)
+- Filename format: `[form-title]-responses.csv`
+
+<Note>
+Checkbox fields with multiple selections are exported as comma-separated values within a single cell.
+</Note>
+
+### Data Safety Checklist
+
+- ✅ Export responses before unpublishing forms
+- ✅ Store CSV backups in a secure location
+- ✅ Keep multiple backup versions with dates
+- ✅ Test CSV imports in your analysis tool
+- ✅ Document field IDs for reference
+
+<Warning>
+**Important**: Deleting a form deletes all associated responses permanently. Always export before deletion.
+</Warning>
+
+## Form Organization Tips
+
+### Field Ordering
+
+Arrange fields in a logical sequence:
+
+1. **Personal Information First**: Name, email, contact details
+2. **Primary Questions**: The main purpose of your form
+3. **Optional Details**: Supplementary information
+4. **Actions Last**: Preferences, newsletter signup
+
+### Field IDs and Labels
+
+FastForms generates unique field IDs automatically. These IDs:
+
+- Must be unique within a form (validated by schema)
+- Are used in response data as keys
+- Should be descriptive (e.g., `email_address` not `field1`)
+
+**Field Labels** are shown to users:
+- Keep them clear and concise
+- Use sentence case for better readability
+- Avoid technical jargon
+
+### Placeholder Text
+
+Use placeholders to provide examples or guidance:
+
+```json
+{
+  "type": "text",
+  "label": "Full Name",
+  "placeholder": "John Smith"
+}
+```
+
+```json
+{
+  "type": "email",
+  "label": "Email Address",
+  "placeholder": "name@example.com"
+}
+```
+
+<Tip>
+Placeholders disappear when users start typing, so don't put critical instructions there—use field labels instead.
+</Tip>
+
+## Performance Optimization
+
+### Keep Forms Focused
+
+- **Limit field count**: Aim for 5-10 fields for better completion rates
+- **Split long forms**: Consider multiple shorter forms instead of one lengthy form
+- **Remove unnecessary fields**: Every field should serve a clear purpose
+
+### Form Testing
+
+Before publishing:
+
+1. Preview your form in the form detail page
+2. Test all field types function correctly
+3. Verify validation works as expected
+4. Check required field indicators display
+5. Test the complete submission flow
+
+<Note>
+Fields are disabled in preview mode. Publish your form and test it via the public URL (`/f/[slug]`) for full functionality testing.
+</Note>

@@ -1,0 +1,517 @@
+---
+title: "Export & Analytics"
+description: "View form responses and export data to CSV with an extensible export system"
+---
+
+FastForms provides a comprehensive response viewing and export system. View individual submissions in a clean dashboard, then export all data to CSV for further analysis in Excel, Google Sheets, or your analytics tools.
+
+## Viewing Responses
+
+Access all responses for a specific form at `/forms/{formId}/responses`.
+
+### Response Dashboard
+
+```typescript
+// app/forms/[formId]/responses/page.tsx:88-119
+return (
+  <div className="min-h-screen p-8">
+    <h1 className="text-3xl font-bold mb-2">{formTitle}</h1>
+    <p className="text-gray-600 mb-6">
+      {responses.length} {responses.length === 1 ? "response" : "responses"}
+    </p>
+    <button
+      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+      onClick={handleExport}
+      disabled={isExporting}
+    >
+      {isExporting ? "Exporting..." : "Export"}
+    </button>
+    <div className="space-y-6">
+      {responses.map((response) => (
+        <div key={response.id} className="border rounded-lg p-6 shadow-sm">
+          <p className="text-sm text-gray-500 mb-4">
+            Submitted on {new Date(response.createdAt).toLocaleString()}
+          </p>
+          <div className="space-y-2">
+            {Object.entries(response.data).map(([key, value]) => (
+              <div key={key} className="flex justify-between border-b pb-1">
+                <span className="font-medium capitalize">{key}</span>
+                <span>{String(value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+```
+
+### What You See
+
+Each response card displays:
+- **Submission timestamp** - Formatted local date/time
+- **All field values** - Key-value pairs from the JSON data
+- **Field names** - Automatically capitalized from field IDs
+
+<Note>
+  Responses are rendered dynamically from JSON, so the display adapts to any form schema without code changes.
+</Note>
+
+## Data Fetching
+
+<Steps>
+  <Step title="Extract form ID">
+    ```typescript
+    // app/forms/[formId]/responses/page.tsx:15-16
+    const params = useParams();
+    const formId = params.formId as string;
+    ```
+  </Step>
+
+  <Step title="Fetch responses">
+    ```typescript
+    // app/forms/[formId]/responses/page.tsx:24-35
+    const fetchResponses = async () => {
+      try {
+        if (!formId) return;
+        const response = await axios.get<{
+          success: boolean;
+          formTitle: string;
+          totalResponses: number;
+          responses: Response[];
+        }>(`/api/forms/${formId}/responses`);
+        setFormTitle(response.data.formTitle);
+        setResponses(response.data.responses);
+      }
+    };
+    ```
+  </Step>
+
+  <Step title="Render response cards">
+    Each response is rendered as a card with timestamp and field data.
+  </Step>
+</Steps>
+
+## CSV Export
+
+The export system is designed for extensibility - currently supports CSV, with architecture ready for PDF, Excel, JSON, and more.
+
+### Export Flow
+
+<Steps>
+  <Step title="User clicks Export button">
+    ```typescript
+    // app/forms/[formId]/responses/page.tsx:94-100
+    <button
+      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+      onClick={handleExport}
+      disabled={isExporting}
+    >
+      {isExporting ? "Exporting..." : "Export"}
+    </button>
+    ```
+  </Step>
+
+  <Step title="Request export from API">
+    ```typescript
+    // app/forms/[formId]/responses/page.tsx:47-62
+    const handleExport = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get(`/api/forms/${formId}/export`);
+        // Create a blob from the response data
+        const blob = new Blob([response.data], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+
+        // create a link
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${formTitle}-responses.csv`;
+
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {}
+    };
+    ```
+  </Step>
+
+  <Step title="Server processes export">
+    The API fetches responses and passes them to the export system.
+  </Step>
+
+  <Step title="File downloads">
+    Browser downloads the generated CSV file.
+  </Step>
+</Steps>
+
+## Export Architecture
+
+The export system uses a **pluggable architecture** for easy extension.
+
+### Directory Structure
+
+```
+lib/exporter/
+├── index.ts       # Export registry
+├── types.ts       # TypeScript interfaces
+├── utils.ts       # Shared utilities
+└── csv.ts         # CSV exporter
+```
+
+### Type Definitions
+
+```typescript
+// lib/exporter/types.ts
+export interface ExportInput {
+  formTitle: string;
+  responses: Array<{
+    data: Record<string, any>;
+    createdAt: string;
+  }>;
+}
+
+export interface ExportOutput {
+  content: string;
+  mimeType: string;
+  fileName: string;
+}
+
+export type Exporter = (input: ExportInput) => ExportOutput;
+```
+
+<Tip>
+  The `Exporter` type defines a simple function signature, making it easy to add new formats.
+</Tip>
+
+### Export Registry
+
+```typescript
+// lib/exporter/index.ts:8-12
+export const exporters: Record<string, Exporter> = {
+  csv: exportToCSV
+};
+
+export const SUPPORTED_EXPORTERS = Object.keys(exporters);
+```
+
+<Note>
+  Adding a new export format requires:
+  1. Creating a new file (e.g., `pdf.ts`)
+  2. Implementing the `Exporter` function
+  3. Adding it to the `exporters` object
+</Note>
+
+## CSV Export Implementation
+
+The CSV exporter uses **PapaParse** for reliable CSV generation.
+
+### CSV Exporter
+
+```typescript
+// lib/exporter/csv.ts
+import Papa from 'papaparse';
+import { Exporter } from './types';
+import { normalizeResponses } from './utils';
+
+export const exportToCSV: Exporter = (input) => {
+  const normalizedData = normalizeResponses(input.responses);
+
+  const csvContent = Papa.unparse(normalizedData);
+
+  const formattedTitle = input.formTitle
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+
+  const fileName = `${formattedTitle || 'export'}-responses.csv`;
+  return {
+    content: csvContent,
+    mimeType: 'text/csv; charset=utf-8',
+    fileName,
+  };
+};
+```
+
+### Data Normalization
+
+Responses are normalized before export to flatten the structure:
+
+```typescript
+// lib/exporter/utils.ts:1-11
+export function normalizeResponses(
+  responses: Array<{
+    data: Record<string, any>;
+    createdAt: string;
+  }>,
+): Array<Record<string, any>> {
+  return responses.map((response) => ({
+    ...response.data,
+    submitted_at: new Date(response.createdAt).toLocaleString()
+  }));
+}
+```
+
+**Transformation:**
+
+Before:
+```json
+{
+  "id": "cm123",
+  "data": {
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "createdAt": "2024-01-15T10:30:00Z"
+}
+```
+
+After:
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "submitted_at": "1/15/2024, 10:30:00 AM"
+}
+```
+
+### CSV Output Example
+
+```csv
+name,email,rating,comments,submitted_at
+John Doe,john@example.com,Very Satisfied,Great service!,"1/15/2024, 10:30:00 AM"
+Jane Smith,jane@example.com,Satisfied,Good experience,"1/16/2024, 2:15:00 PM"
+```
+
+## Export API Endpoint
+
+**GET** `/api/forms/{formId}/export?format=csv`
+
+### Implementation
+
+```typescript
+// app/api/forms/[id]/export/route.ts:6-70
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const { userId } = await auth();
+    
+    // Authorization check
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    // Fetch form and verify ownership
+    const form = await prisma.forms.findUnique({
+      where: { id },
+      select: { title: true, userId: true },
+    });
+
+    if (!form) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
+    if (form.userId !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Fetch responses
+    const responses = await prisma.formsResponses.findMany({
+      where: { formId: id },
+      select: { data: true, createdAt: true },
+    });
+
+    if (responses.length === 0) {
+      return new Response("No responses to export", { status: 404 });
+    }
+
+    // Format for export
+    const formattedResponses = responses.map((r) => ({
+      data: r.data as Record<string, any>,
+      createdAt: r.createdAt.toISOString(),
+    }));
+
+    // Get exporter
+    const format = request.nextUrl.searchParams.get("format") || "csv";
+    const exporter = exporters[format];
+
+    if (!exporter) {
+      return NextResponse.json(
+        { error: "Unsupported export format" },
+        { status: 400 },
+      );
+    }
+
+    // Generate export
+    const exportUtility = exporter({
+      formTitle: form.title,
+      responses: formattedResponses,
+    });
+
+    return new Response(exportUtility.content, {
+      headers: {
+        "Content-Type": exportUtility.mimeType,
+        "Content-Disposition": `attachment; filename="${exportUtility.fileName}"`,
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to export form" },
+      { status: 500 },
+    );
+  }
+}
+```
+
+### Authorization
+
+<Warning>
+  The export endpoint verifies that the requesting user owns the form before allowing export. This prevents unauthorized data access.
+</Warning>
+
+```typescript
+// app/api/forms/[id]/export/route.ts:24-26
+if (form.userId !== userId) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+```
+
+## Adding New Export Formats
+
+The architecture makes it simple to add new formats like PDF, Excel, or JSON.
+
+<Steps>
+  <Step title="Create exporter file">
+    Create a new file in `lib/exporter/` (e.g., `pdf.ts`, `excel.ts`).
+  </Step>
+
+  <Step title="Implement Exporter function">
+    ```typescript
+    // lib/exporter/pdf.ts
+    import { Exporter } from './types';
+    
+    export const exportToPDF: Exporter = (input) => {
+      // Generate PDF using a library like jsPDF
+      const pdfContent = generatePDF(input.responses);
+      
+      return {
+        content: pdfContent,
+        mimeType: 'application/pdf',
+        fileName: `${input.formTitle}-responses.pdf`,
+      };
+    };
+    ```
+  </Step>
+
+  <Step title="Register in index.ts">
+    ```typescript
+    // lib/exporter/index.ts
+    import { exportToCSV } from './csv';
+    import { exportToPDF } from './pdf';
+    
+    export const exporters: Record<string, Exporter> = {
+      csv: exportToCSV,
+      pdf: exportToPDF,  // Add new format
+    };
+    ```
+  </Step>
+
+  <Step title="Use with query parameter">
+    ```
+    GET /api/forms/{formId}/export?format=pdf
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  The API automatically validates format support and returns a 400 error for unsupported formats.
+</Tip>
+
+## Error Handling
+
+<Tabs>
+  <Tab title="No Responses">
+    ```typescript
+    if (responses.length === 0) {
+      return (
+        <div className="p-8">
+          <h1 className="text-2xl font-bold mb-2">{formTitle}</h1>
+          <p className="text-gray-600">No responses yet.</p>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab title="Unauthorized Export">
+    ```typescript
+    if (form.userId !== userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab title="Unsupported Format">
+    ```typescript
+    if (!exporter) {
+      return NextResponse.json(
+        { error: "Unsupported export format" },
+        { status: 400 }
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab title="Export Failed">
+    ```typescript
+    catch (error) {
+      return NextResponse.json(
+        { error: "Failed to export form" },
+        { status: 500 }
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Future Export Formats
+
+The extensible architecture supports:
+
+<Accordion title="Excel (.xlsx)">
+  Use libraries like `exceljs` or `xlsx` to generate Excel workbooks with formatted sheets.
+</Accordion>
+
+<Accordion title="PDF Reports">
+  Generate formatted PDF reports with `jsPDF` or `pdfkit`, including charts and summaries.
+</Accordion>
+
+<Accordion title="JSON">
+  Return raw JSON for API integrations and custom processing.
+</Accordion>
+
+<Accordion title="Google Sheets">
+  Integrate with Google Sheets API to automatically populate spreadsheets.
+</Accordion>
+
+<Accordion title="Email">
+  Send response summaries via email using services like SendGrid or Resend.
+</Accordion>
+
+## Analytics Insights
+
+While the current system focuses on raw data export, the response data structure supports future analytics:
+
+- **Response counts** - Track submissions over time
+- **Field analysis** - Identify most common selections
+- **Completion rates** - Monitor form abandonment
+- **Response times** - Analyze submission patterns
+
+<Note>
+  All responses include `createdAt` timestamps, enabling time-based analytics and trend visualization.
+</Note>

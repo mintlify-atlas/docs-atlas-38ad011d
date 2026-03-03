@@ -1,0 +1,327 @@
+---
+title: 'Manage Forms'
+description: 'Retrieve, update, and delete forms'
+---
+
+## Get All Forms
+
+Retrieve all forms belonging to the authenticated user, including response counts.
+
+### Endpoint
+
+```
+GET /api/getAllForms
+```
+
+### Authentication
+
+Requires Clerk authentication. Only returns forms owned by the authenticated user.
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Always `true` for successful requests
+</ResponseField>
+
+<ResponseField name="forms" type="array">
+  Array of form objects ordered by creation date (newest first)
+  
+  <Expandable title="Form Object Properties">
+    <ResponseField name="id" type="string">
+      Unique form identifier
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Form title
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of form creation
+    </ResponseField>
+    
+    <ResponseField name="_count" type="object">
+      <ResponseField name="responses" type="number">
+        Number of responses submitted to this form
+      </ResponseField>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET https://your-domain.com/api/getAllForms \
+  -H "Cookie: __session=your-clerk-session"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "forms": [
+    {
+      "id": "cm3x7y2z1a0b1c2d3e4f5",
+      "title": "Customer Feedback Form",
+      "createdAt": "2026-03-01T10:30:00.000Z",
+      "_count": {
+        "responses": 42
+      }
+    },
+    {
+      "id": "cm3a1b2c3d4e5f6g7h8i9",
+      "title": "Event Registration",
+      "createdAt": "2026-02-28T15:45:00.000Z",
+      "_count": {
+        "responses": 15
+      }
+    }
+  ]
+}
+```
+
+Source: `app/api/getAllForms/route.ts:5`
+
+---
+
+## Get Form
+
+Retrieve a specific form by its ID or slug. This endpoint is public and does not require authentication.
+
+### Endpoint
+
+```
+GET /api/forms/[id]
+```
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  Form identifier - can be either the form's UUID or its URL-friendly slug
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Always `true` for successful requests
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Complete form object including all fields
+  
+  <Expandable title="Form Data Properties">
+    <ResponseField name="id" type="string">
+      Unique form identifier
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string">
+      URL-friendly slug
+    </ResponseField>
+    
+    <ResponseField name="userId" type="string">
+      Clerk user ID of the form owner
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Form title
+    </ResponseField>
+    
+    <ResponseField name="fields" type="array">
+      Array of form field definitions (structure varies based on form)
+    </ResponseField>
+    
+    <ResponseField name="isPublished" type="boolean">
+      Whether the form is published and accepting responses
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of creation
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+# By ID
+curl -X GET https://your-domain.com/api/forms/cm3x7y2z1a0b1c2d3e4f5
+
+# By slug
+curl -X GET https://your-domain.com/api/forms/customer-feedback-abc123
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "cm3x7y2z1a0b1c2d3e4f5",
+    "slug": "customer-feedback-abc123",
+    "userId": "user_2abc123xyz",
+    "title": "Customer Feedback Form",
+    "fields": [
+      {
+        "id": "name",
+        "label": "Your Name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "email",
+        "label": "Email Address",
+        "type": "email",
+        "required": true
+      },
+      {
+        "id": "rating",
+        "label": "Rating",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "isPublished": true,
+    "createdAt": "2026-03-01T10:30:00.000Z"
+  }
+}
+```
+
+Source: `app/api/forms/[id]/route.ts:12`
+
+---
+
+## Delete Form
+
+Permanently delete a form and all its associated responses.
+
+### Endpoint
+
+```
+DELETE /api/forms/[id]
+```
+
+### Authentication
+
+Requires Clerk authentication. You can only delete forms you own.
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the form to delete
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Always `true` for successful deletions
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The deleted form object
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://your-domain.com/api/forms/cm3x7y2z1a0b1c2d3e4f5 \
+  -H "Cookie: __session=your-clerk-session"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "cm3x7y2z1a0b1c2d3e4f5",
+    "title": "Customer Feedback Form",
+    "userId": "user_2abc123xyz",
+    "slug": "customer-feedback-abc123",
+    "fields": [...],
+    "isPublished": true,
+    "createdAt": "2026-03-01T10:30:00.000Z"
+  }
+}
+```
+
+### Error Responses
+
+<Expandable title="401 Unauthorized">
+```json
+{
+  "error": "Unauthorized"
+}
+```
+Returned when:
+- No authentication session is present
+- The authenticated user does not own the form
+</Expandable>
+
+<Expandable title="404 Not Found">
+```json
+{
+  "error": "Form not found"
+}
+```
+Returned when the form ID does not exist.
+</Expandable>
+
+Source: `app/api/forms/[id]/route.ts:57`
+
+---
+
+## Toggle Publish Status
+
+Toggle a form's `isPublished` status between `true` and `false`.
+
+### Endpoint
+
+```
+PATCH /api/forms/[id]
+```
+
+### Authentication
+
+Requires Clerk authentication. You can only update forms you own.
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the form to update
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Always `true` for successful updates
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The updated form object with the new `isPublished` value
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://your-domain.com/api/forms/cm3x7y2z1a0b1c2d3e4f5 \
+  -H "Cookie: __session=your-clerk-session"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "cm3x7y2z1a0b1c2d3e4f5",
+    "title": "Customer Feedback Form",
+    "userId": "user_2abc123xyz",
+    "slug": "customer-feedback-abc123",
+    "fields": [...],
+    "isPublished": false,
+    "createdAt": "2026-03-01T10:30:00.000Z"
+  }
+}
+```
+
+Source: `app/api/forms/[id]/route.ts:109`

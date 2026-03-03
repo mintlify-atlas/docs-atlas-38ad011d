@@ -1,0 +1,381 @@
+---
+title: Sharing Forms
+description: Learn how to publish forms and share them with respondents using FastForms' slug-based URL system
+---
+
+FastForms makes it easy to share your forms through unique, clean URLs. This guide covers everything about publishing, sharing, and managing public access to your forms.
+
+## Understanding Form URLs
+
+Every form in FastForms gets a unique identifier called a **slug** when created. This slug enables public access through a clean, shareable URL.
+
+### URL Structure
+
+```text
+https://yourdomain.com/f/[slug]
+```
+
+For example:
+```text
+https://yourdomain.com/f/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+<Note>
+The slug is automatically generated as a UUID when you create a form. It's unique, unpredictable, and permanent for the lifetime of the form.
+</Note>
+
+### Public vs Private Forms
+
+Forms have two states:
+
+<CardGroup cols={2}>
+  <Card title="Unpublished (Private)" icon="lock">
+    - Default state for new forms
+    - Not accessible via public URL
+    - Only you can view in preview mode
+    - Safe for drafts and testing
+  </Card>
+  
+  <Card title="Published (Public)" icon="globe">
+    - Accessible via `/f/[slug]` URL
+    - Anyone with the link can submit
+    - Starts collecting responses
+    - Can be unpublished anytime
+  </Card>
+</CardGroup>
+
+## Publishing Your Form
+
+Publishing makes your form available to respondents through its public URL.
+
+<Steps>
+  <Step title="Navigate to Your Form">
+    Go to your form's detail page at `/forms/[formId]`. You'll see a preview of your form with all fields disabled.
+  </Step>
+
+  <Step title="Click Publish Form">
+    At the bottom of the preview, you'll see a publish section. Click the green **"Publish Form"** button.
+    
+    <Note>
+    The button will show "Publishing..." briefly while the status updates.
+    </Note>
+  </Step>
+
+  <Step title="Copy Your Shareable Link">
+    Once published, the interface changes to show:
+    - Your public form URL
+    - A **"Copy Link"** button for easy sharing
+    - An **"Unpublish Form"** button (red) to revoke access
+  </Step>
+
+  <Step title="Share the Link">
+    Copy the URL and share it via:
+    - Email
+    - Social media
+    - QR codes
+    - Embedded in websites
+    - Text messages
+  </Step>
+</Steps>
+
+<Tip>
+The **"Copy Link"** button copies the full URL to your clipboard. After clicking, it changes to "Copied!" for 2 seconds to confirm.
+</Tip>
+
+## The Publishing Interface
+
+### Before Publishing
+
+When your form is unpublished, you'll see:
+
+```text
+┌─────────────────────────────────────────┐
+│ This form is not published yet.         │
+│ Publish it to get a shareable link.     │
+│                                         │
+│  [Publish Form]                         │
+└─────────────────────────────────────────┘
+```
+
+### After Publishing
+
+Once published, the interface shows:
+
+```text
+┌─────────────────────────────────────────┐
+│ Share this form:                        │
+│                                         │
+│ https://...com/f/abc123  [Copy Link]   │
+│                                         │
+│  [Unpublish Form]                       │
+└─────────────────────────────────────────┘
+```
+
+## Unpublishing Forms
+
+You can revoke public access at any time by unpublishing your form.
+
+<Warning>
+**Important**: Unpublishing immediately makes the public URL inaccessible. Anyone who tries to access it will see an error.
+</Warning>
+
+### How to Unpublish
+
+1. Navigate to your form's detail page
+2. Scroll to the sharing section (visible when published)
+3. Click the red **"Unpublish Form"** button
+4. The form instantly becomes private
+
+<Accordion title="What happens when you unpublish?">
+  - Public URL (`/f/[slug]`) becomes inaccessible
+  - Existing responses remain intact
+  - You can still view and export responses
+  - Form returns to preview-only mode
+  - You can republish anytime to restore access
+</Accordion>
+
+### When to Unpublish
+
+Consider unpublishing when:
+
+- ✅ You've collected enough responses
+- ✅ The form deadline has passed
+- ✅ You need to make changes to the form
+- ✅ The event or campaign has ended
+- ✅ You want to temporarily pause submissions
+
+<Note>
+Unpublishing does NOT delete responses. All existing submissions remain in your database and can be viewed and exported.
+</Note>
+
+## Best Practices for Sharing
+
+### When to Keep Forms Private
+
+Keep forms unpublished while:
+
+<CardGroup cols={2}>
+  <Card title="Testing" icon="flask">
+    Test your form thoroughly before sharing. Check all field types, validation, and required fields in preview mode.
+  </Card>
+  
+  <Card title="Drafting" icon="pencil">
+    While you're still refining questions, field order, or validation rules.
+  </Card>
+  
+  <Card title="Preparing" icon="clock">
+    Before your campaign launch date or event registration opens.
+  </Card>
+  
+  <Card title="Reviewing" icon="eye">
+    When stakeholders need to approve the form before it goes live.
+  </Card>
+</CardGroup>
+
+### When to Publish
+
+Publish your form when:
+
+- ✅ All fields are finalized and tested
+- ✅ Validation rules are working correctly
+- ✅ You're ready to start collecting responses
+- ✅ Your audience is ready to respond
+- ✅ Associated campaigns or events are active
+
+<Tip>
+**Pro tip**: Create your form a few days before you need it, test thoroughly while unpublished, then publish exactly when you're ready to collect responses.
+</Tip>
+
+### Sharing Strategies
+
+<Accordion title="Email Campaigns">
+  Include the form link in email newsletters or invitations:
+  
+  ```html
+  <a href="https://yourdomain.com/f/abc123">Complete the Survey</a>
+  ```
+  
+  Or provide the full URL for plain text emails.
+</Accordion>
+
+<Accordion title="Social Media">
+  Share the link on platforms like:
+  - Twitter/X (use link shorteners if needed)
+  - LinkedIn posts or messages
+  - Facebook groups or pages
+  - Instagram bio or stories (link stickers)
+</Accordion>
+
+<Accordion title="QR Codes">
+  Generate a QR code from your form URL for:
+  - Printed materials (flyers, posters)
+  - Event signage
+  - Business cards
+  - Conference presentations
+</Accordion>
+
+<Accordion title="Website Embedding">
+  Link to your form from your website:
+  
+  ```html
+  <a href="https://yourdomain.com/f/abc123" target="_blank">
+    Fill out our contact form
+  </a>
+  ```
+  
+  Or embed in an iframe (advanced users).
+</Accordion>
+
+## URL Security Considerations
+
+### Slug Privacy
+
+While your form URL is "public" when published, the UUID-based slug provides security through obscurity:
+
+- **Not guessable**: UUIDs are essentially impossible to guess
+- **Not indexed**: Search engines won't discover unpublished forms
+- **Not enumerable**: Attackers can't iterate through form IDs
+
+<Warning>
+Anyone with the URL can access your published form. Don't publish forms containing sensitive logic or information you want restricted.
+</Warning>
+
+### Access Control
+
+FastForms uses a simple binary access model:
+
+| State | Public URL Access | Preview Access | Who Can Submit |
+|-------|------------------|----------------|----------------|
+| **Unpublished** | ❌ Denied | ✅ Owner only | Nobody |
+| **Published** | ✅ Allowed | ✅ Owner only | Anyone with link |
+
+<Note>
+There's no built-in password protection or authentication for public forms. If you need restricted access, keep forms unpublished and share them individually, or build custom authentication.
+</Note>
+
+## Tracking Form Status
+
+You can identify whether a form is published from several places:
+
+### In the Form Detail Page
+
+The publish/unpublish section clearly shows current status:
+- Green "Publish Form" button = Currently unpublished
+- Red "Unpublish Form" button + shareable URL = Currently published
+
+### Via the API
+
+The form object includes an `isPublished` boolean:
+
+```json
+{
+  "id": "cm123456789",
+  "title": "Contact Form",
+  "slug": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "isPublished": true,
+  "createdAt": "2026-03-03T10:30:00Z"
+}
+```
+
+## Common Workflows
+
+### Pre-Launch Testing
+
+<Steps>
+  <Step title="Create and preview">
+    Generate form with AI, review in preview mode
+  </Step>
+  
+  <Step title="Keep private">
+    Leave unpublished while refining
+  </Step>
+  
+  <Step title="Internal testing">
+    Share the form ID with team members for preview
+  </Step>
+  
+  <Step title="Publish on launch day">
+    Click publish when ready to collect responses
+  </Step>
+</Steps>
+
+### Limited-Time Campaigns
+
+<Steps>
+  <Step title="Publish at start">
+    Publish form when campaign begins
+  </Step>
+  
+  <Step title="Share widely">
+    Distribute link via all channels
+  </Step>
+  
+  <Step title="Monitor responses">
+    Check response count regularly
+  </Step>
+  
+  <Step title="Unpublish at deadline">
+    Unpublish when campaign ends
+  </Step>
+  
+  <Step title="Export data">
+    Download CSV of all responses
+  </Step>
+</Steps>
+
+### Evergreen Forms
+
+<Steps>
+  <Step title="Publish once">
+    Publish for ongoing use
+  </Step>
+  
+  <Step title="Set and forget">
+    Leave published indefinitely
+  </Step>
+  
+  <Step title="Regular exports">
+    Download responses weekly/monthly
+  </Step>
+  
+  <Step title="Monitor activity">
+    Check for spam or issues periodically
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Form link shows 'Form not found'">
+    **Possible causes:**
+    - Form is unpublished (check status in dashboard)
+    - Wrong slug in URL (verify the exact URL from the copy button)
+    - Form was deleted
+    
+    **Solution**: Ensure form is published and URL is correct.
+  </Accordion>
+
+  <Accordion title="Copy Link button doesn't work">
+    **Possible causes:**
+    - Browser doesn't support clipboard API
+    - HTTPS not enabled (clipboard requires secure context)
+    
+    **Solution**: Manually copy the URL from the input field, or use a modern browser with HTTPS.
+  </Accordion>
+
+  <Accordion title="Want to change form URL">
+    **Current limitation**: Slugs are permanent and cannot be changed.
+    
+    **Workaround**: Create a new form with AI (you can describe it the same way) to get a new slug.
+  </Accordion>
+
+  <Accordion title="Need password-protected forms">
+    **Current limitation**: FastForms doesn't support password protection.
+    
+    **Workaround**: Keep forms unpublished and only share the preview with authorized users, or implement custom authentication in your deployment.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+**Quick Reference**: To share a form, navigate to `/forms/[formId]`, click "Publish Form", then click "Copy Link" and share via your preferred channel.
+</Tip>

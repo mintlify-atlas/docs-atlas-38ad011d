@@ -1,0 +1,104 @@
+---
+title: 'API Reference Overview'
+description: 'Complete reference for the FastForms REST API'
+---
+
+## Introduction
+
+The FastForms API enables you to programmatically generate forms, manage submissions, and export response data. All endpoints use standard HTTP methods and return JSON responses.
+
+## Base URL
+
+```
+https://your-domain.com/api
+```
+
+## Authentication
+
+Most endpoints require authentication using Clerk session cookies. Requests must be made from an authenticated browser session or with valid Clerk session tokens.
+
+**Protected Endpoints:**
+- POST `/forms/generate` - Requires authentication
+- GET `/getAllForms` - Requires authentication
+- DELETE `/forms/[id]` - Requires authentication (must own the form)
+- PATCH `/forms/[id]` - Requires authentication (must own the form)
+- GET `/forms/[id]/responses` - Requires authentication (must own the form)
+- GET `/forms/[id]/export` - Requires authentication (must own the form)
+
+**Public Endpoints:**
+- GET `/forms/[id]` - No authentication required (can use ID or slug)
+- POST `/forms/submit` - No authentication required
+
+## Available Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/forms/generate` | Generate a new form using AI |
+| GET | `/getAllForms` | Get all forms for the authenticated user |
+| GET | `/forms/[id]` | Get a specific form by ID or slug |
+| DELETE | `/forms/[id]` | Delete a form |
+| PATCH | `/forms/[id]` | Toggle form publish status |
+| POST | `/forms/submit` | Submit a response to a form |
+| GET | `/forms/[id]/responses` | Get all responses for a form |
+| GET | `/forms/[id]/export` | Export form responses as CSV |
+
+## Error Response Format
+
+All errors follow a consistent JSON structure:
+
+```json
+{
+  "error": "Error message describing what went wrong"
+}
+```
+
+### Common HTTP Status Codes
+
+- `200` - Success
+- `201` - Created successfully
+- `400` - Bad request (validation error)
+- `401` - Unauthorized (authentication required)
+- `404` - Resource not found
+- `500` - Internal server error
+
+## Quick Example
+
+Generate a form using AI:
+
+```bash
+curl -X POST https://your-domain.com/api/forms/generate \
+  -H "Content-Type: application/json" \
+  -H "Cookie: __session=your-clerk-session" \
+  -d '{
+    "prompt": "Create a customer feedback form with name, email, and rating fields"
+  }'
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "formId": "cm123abc456",
+  "slug": "customer-feedback-xyz789",
+  "title": "Customer Feedback Form",
+  "message": "Form generated successfully"
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Generate Forms" icon="wand-magic-sparkles" href="/api/generate-form">
+    Learn how to create forms with AI
+  </Card>
+  <Card title="Manage Forms" icon="folder" href="/api/manage-forms">
+    Get, update, and delete your forms
+  </Card>
+  <Card title="Submit Responses" icon="paper-plane" href="/api/submit-response">
+    Handle form submissions
+  </Card>
+  <Card title="Export Data" icon="download" href="/api/export-responses">
+    Export responses as CSV
+  </Card>
+</CardGroup>

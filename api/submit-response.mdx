@@ -1,0 +1,192 @@
+---
+title: 'Submit Response'
+description: 'Submit a response to a form'
+---
+
+## Submit Form Response
+
+Submit a response to a published form. This endpoint validates that all required fields are present before saving the response.
+
+### Endpoint
+
+```
+POST /api/forms/submit
+```
+
+### Authentication
+
+No authentication required. This endpoint is public to allow anyone with the form link to submit responses.
+
+### Request Body
+
+<ParamField path="formId" type="string" required>
+  The UUID of the form to submit a response to
+</ParamField>
+
+<ParamField path="data" type="object" required>
+  An object containing the form field values. Keys should match the field IDs defined in the form schema.
+  
+  The structure varies based on the form, but generally:
+  - Keys are field IDs (e.g., "name", "email", "rating")
+  - Values are the user's input for each field
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the response was submitted successfully
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message: "Response submitted successfully"
+</ResponseField>
+
+<ResponseField name="responseId" type="string">
+  Unique identifier for the submitted response
+</ResponseField>
+
+### Validation Rules
+
+The endpoint performs the following validations:
+
+1. **Form ID validation**: Must be a non-empty string
+2. **Data validation**: Must be a valid object (not null, not array)
+3. **Form existence**: The form must exist in the database
+4. **Required fields**: All fields marked as `required: true` in the form schema must be present in the data object
+
+If any validation fails, the request is rejected with a 400 or 404 error.
+
+### Example Request
+
+```bash
+curl -X POST https://your-domain.com/api/forms/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "formId": "cm3x7y2z1a0b1c2d3e4f5",
+    "data": {
+      "name": "John Doe",
+      "email": "john@example.com",
+      "rating": 5,
+      "comments": "Great service!"
+    }
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Response submitted successfully",
+  "responseId": "cm3z1a2b3c4d5e6f7g8h9"
+}
+```
+
+### Error Responses
+
+<Expandable title="400 Bad Request - Missing Form ID">
+```json
+{
+  "error": "Form ID is required and cannot be empty"
+}
+```
+Returned when `formId` is missing or empty string.
+</Expandable>
+
+<Expandable title="400 Bad Request - Invalid Data">
+```json
+{
+  "error": "Form data is required and must be an object"
+}
+```
+Returned when `data` is missing, null, or not an object.
+</Expandable>
+
+<Expandable title="400 Bad Request - Invalid Form Fields">
+```json
+{
+  "error": "Form fields are not in the correct format"
+}
+```
+Returned when the form's field schema is corrupted or invalid.
+</Expandable>
+
+<Expandable title="400 Bad Request - Missing Required Field">
+```json
+{
+  "error": "Required field missing: Email Address"
+}
+```
+Returned when a required field is not present in the submitted data. The error message includes the field's label to help users understand what's missing.
+</Expandable>
+
+<Expandable title="404 Not Found">
+```json
+{
+  "error": "Form not found"
+}
+```
+Returned when the specified form ID does not exist in the database.
+</Expandable>
+
+<Expandable title="500 Internal Server Error">
+```json
+{
+  "error": "Failed to submit form"
+}
+```
+Returned when database operation fails or an unexpected error occurs.
+</Expandable>
+
+### Implementation Details
+
+The submission process:
+
+1. Validates the `formId` and `data` parameters
+2. Looks up the form in the database
+3. Retrieves the form's field schema
+4. Checks that all required fields are present in the submitted data
+5. Creates a new response record in the `formsResponses` table
+6. Returns the response ID
+
+Source: `app/api/forms/submit/route.ts:4`
+
+### Example: Required Field Validation
+
+Given a form with this field schema:
+
+```json
+[
+  { "id": "name", "label": "Your Name", "required": true },
+  { "id": "email", "label": "Email", "required": true },
+  { "id": "phone", "label": "Phone", "required": false }
+]
+```
+
+Valid submission (phone is optional):
+```json
+{
+  "formId": "cm3x7y2z1a0b1c2d3e4f5",
+  "data": {
+    "name": "Jane Smith",
+    "email": "jane@example.com"
+  }
+}
+```
+
+Invalid submission (missing required email):
+```json
+{
+  "formId": "cm3x7y2z1a0b1c2d3e4f5",
+  "data": {
+    "name": "Jane Smith"
+  }
+}
+```
+
+This would return:
+```json
+{
+  "error": "Required field missing: Email"
+}
+```

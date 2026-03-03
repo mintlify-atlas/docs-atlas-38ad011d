@@ -1,0 +1,834 @@
+---
+title: Form Customization
+description: Complete guide to customizing form fields, validation, and options in FastForms
+---
+
+FastForms provides extensive customization options for creating tailored data collection experiences. This guide covers field types, validation rules, and organization strategies.
+
+## Understanding Form Schema
+
+Every form in FastForms follows a structured schema with three main components:
+
+```json
+{
+  "title": "Form Title",
+  "description": "Optional description",
+  "fields": [
+    // Array of field objects
+  ]
+}
+```
+
+<Note>
+While you typically generate forms using AI prompts, understanding the schema helps you know what customizations are possible.
+</Note>
+
+## Field Anatomy
+
+Each field in your form has the following structure:
+
+```json
+{
+  "id": "unique_field_identifier",
+  "type": "text",
+  "label": "Field Label",
+  "placeholder": "Placeholder text",
+  "required": true,
+  "options": ["Option 1", "Option 2"],
+  "validation": {
+    "min": 0,
+    "max": 100,
+    "minLength": 5,
+    "maxLength": 200
+  }
+}
+```
+
+### Core Properties
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the field. Must be unique within the form. Used as the key in response data.
+  
+  <Warning>
+  Duplicate field IDs will cause validation errors. The schema enforces uniqueness.
+  </Warning>
+</ParamField>
+
+<ParamField path="type" type="enum" required>
+  The field type determines how users interact with it. Must be one of: `text`, `email`, `date`, `number`, `textarea`, `select`, `radio`, `checkbox`, `file`
+</ParamField>
+
+<ParamField path="label" type="string" required>
+  The visible label shown to users above the field. Should be clear and descriptive.
+</ParamField>
+
+<ParamField path="placeholder" type="string" optional>
+  Hint text displayed inside empty fields. Disappears when user starts typing.
+</ParamField>
+
+<ParamField path="required" type="boolean" optional default="false">
+  Whether the field must be filled before form submission. Required fields show a red asterisk (*) next to the label.
+</ParamField>
+
+<ParamField path="options" type="array" optional>
+  Array of choice values for `select`, `radio`, and `checkbox` field types.
+  
+  <Warning>
+  This property is REQUIRED for select, radio, and checkbox types and must have at least one option.
+  </Warning>
+</ParamField>
+
+<ParamField path="validation" type="object" optional>
+  Validation constraints for the field. Available properties vary by field type.
+</ParamField>
+
+## Field Types Reference
+
+FastForms supports 9 field types, each optimized for different data collection needs.
+
+### Text Input (`text`)
+
+Single-line text input for short responses.
+
+<CodeGroup>
+```json Basic Text Field
+{
+  "id": "full_name",
+  "type": "text",
+  "label": "Full Name",
+  "placeholder": "John Smith",
+  "required": true
+}
+```
+
+```json Text with Length Validation
+{
+  "id": "username",
+  "type": "text",
+  "label": "Username",
+  "placeholder": "Choose a username",
+  "required": true,
+  "validation": {
+    "minLength": 3,
+    "maxLength": 20
+  }
+}
+```
+</CodeGroup>
+
+**Best for**: Names, addresses, short answers, usernames
+
+**Validation options**: `minLength`, `maxLength`
+
+### Email Input (`email`)
+
+Email address with built-in format validation.
+
+```json
+{
+  "id": "email_address",
+  "type": "email",
+  "label": "Email Address",
+  "placeholder": "name@example.com",
+  "required": true
+}
+```
+
+**Best for**: Email addresses, contact information
+
+**Validation options**: Built-in email format validation, plus `minLength`, `maxLength`
+
+<Tip>
+The email type provides browser-native validation and appropriate mobile keyboard layouts (with @ and .com shortcuts).
+</Tip>
+
+### Textarea (`textarea`)
+
+Multi-line text input for longer responses.
+
+```json
+{
+  "id": "feedback",
+  "type": "textarea",
+  "label": "Your Feedback",
+  "placeholder": "Tell us what you think...",
+  "required": false,
+  "validation": {
+    "minLength": 10,
+    "maxLength": 500
+  }
+}
+```
+
+**Best for**: Comments, descriptions, feedback, long-form answers
+
+**Validation options**: `minLength`, `maxLength`
+
+**Appearance**: Minimum height of 100px, expands as user types
+
+### Number Input (`number`)
+
+Numeric values with optional range constraints.
+
+<CodeGroup>
+```json Basic Number
+{
+  "id": "quantity",
+  "type": "number",
+  "label": "Quantity",
+  "placeholder": "Enter amount",
+  "required": true
+}
+```
+
+```json Number with Range
+{
+  "id": "age",
+  "type": "number",
+  "label": "Age",
+  "placeholder": "Your age",
+  "required": true,
+  "validation": {
+    "min": 18,
+    "max": 120
+  }
+}
+```
+</CodeGroup>
+
+**Best for**: Ages, quantities, ratings, prices, years
+
+**Validation options**: `min`, `max`
+
+<Note>
+Number fields show increment/decrement arrows on desktop and a numeric keyboard on mobile devices.
+</Note>
+
+### Date Input (`date`)
+
+Date picker for selecting dates.
+
+```json
+{
+  "id": "birth_date",
+  "type": "date",
+  "label": "Date of Birth",
+  "required": true
+}
+```
+
+**Best for**: Birth dates, event dates, deadlines, appointments
+
+**Validation options**: None currently supported
+
+**Appearance**: Browser-native date picker widget
+
+### Dropdown Select (`select`)
+
+Single selection from a dropdown menu.
+
+```json
+{
+  "id": "country",
+  "type": "select",
+  "label": "Country",
+  "required": true,
+  "options": [
+    "United States",
+    "Canada",
+    "United Kingdom",
+    "Australia",
+    "Other"
+  ]
+}
+```
+
+**Best for**: Countries, states, categories, departments with many options
+
+**Required property**: `options` array (must have at least 1 option)
+
+**Validation options**: None (selection itself is the validation)
+
+<Tip>
+Use `select` when you have 5+ options to save vertical space. For fewer options, consider `radio` for better visibility.
+</Tip>
+
+### Radio Buttons (`radio`)
+
+Single selection with all options visible.
+
+```json
+{
+  "id": "priority",
+  "type": "radio",
+  "label": "Priority Level",
+  "required": true,
+  "options": [
+    "Low",
+    "Medium",
+    "High",
+    "Urgent"
+  ]
+}
+```
+
+**Best for**: Yes/No questions, priority levels, ratings (with 2-5 options)
+
+**Required property**: `options` array (must have at least 1 option)
+
+**Validation options**: None
+
+**Appearance**: Vertical stack of radio buttons with labels
+
+### Checkboxes (`checkbox`)
+
+Multiple selections allowed.
+
+```json
+{
+  "id": "interests",
+  "type": "checkbox",
+  "label": "Areas of Interest",
+  "required": false,
+  "options": [
+    "Web Development",
+    "Mobile Apps",
+    "Data Science",
+    "DevOps",
+    "Design"
+  ]
+}
+```
+
+**Best for**: Multiple preferences, feature selections, interests
+
+**Required property**: `options` array (must have at least 1 option)
+
+**Validation options**: None
+
+**Data format**: Response contains an array of selected values
+
+<Warning>
+Checkbox responses are arrays. When exporting to CSV, multiple selections appear as comma-separated values.
+</Warning>
+
+### File Upload (`file`)
+
+File attachment field.
+
+```json
+{
+  "id": "resume",
+  "type": "file",
+  "label": "Upload Resume",
+  "required": true
+}
+```
+
+**Best for**: Document uploads, images, attachments
+
+**Validation options**: None currently supported
+
+<Note>
+File handling requires additional backend configuration. Check your deployment settings.
+</Note>
+
+## Validation Rules
+
+FastForms supports field-level validation to ensure data quality.
+
+### Text Validation
+
+For `text`, `email`, and `textarea` fields:
+
+<ParamField path="validation.minLength" type="number">
+  Minimum number of characters required.
+  
+  ```json
+  "validation": { "minLength": 10 }
+  ```
+</ParamField>
+
+<ParamField path="validation.maxLength" type="number">
+  Maximum number of characters allowed.
+  
+  ```json
+  "validation": { "maxLength": 200 }
+  ```
+</ParamField>
+
+**Example use cases:**
+- Username between 3-20 characters
+- Bio with 50-500 character limit
+- Comments with minimum 10 characters
+
+### Number Validation
+
+For `number` fields:
+
+<ParamField path="validation.min" type="number">
+  Minimum numeric value allowed.
+  
+  ```json
+  "validation": { "min": 18 }
+  ```
+</ParamField>
+
+<ParamField path="validation.max" type="number">
+  Maximum numeric value allowed.
+  
+  ```json
+  "validation": { "max": 100 }
+  ```
+</ParamField>
+
+**Example use cases:**
+- Age verification (min: 18)
+- Rating scale (min: 1, max: 5)
+- Quantity limits (min: 1, max: 10)
+- Year range (min: 2020, max: 2030)
+
+### Combining Validation Rules
+
+You can use multiple validation rules together:
+
+```json
+{
+  "id": "password",
+  "type": "text",
+  "label": "Password",
+  "required": true,
+  "validation": {
+    "minLength": 8,
+    "maxLength": 128
+  }
+}
+```
+
+```json
+{
+  "id": "attendees",
+  "type": "number",
+  "label": "Number of Attendees",
+  "required": true,
+  "validation": {
+    "min": 1,
+    "max": 50
+  }
+}
+```
+
+## Selection Field Options
+
+### Defining Options
+
+The `options` array is critical for select, radio, and checkbox fields:
+
+<CodeGroup>
+```json Simple Options
+{
+  "id": "size",
+  "type": "select",
+  "label": "T-Shirt Size",
+  "options": ["S", "M", "L", "XL", "XXL"]
+}
+```
+
+```json Descriptive Options
+{
+  "id": "experience",
+  "type": "radio",
+  "label": "Experience Level",
+  "options": [
+    "Beginner (0-1 years)",
+    "Intermediate (2-4 years)",
+    "Advanced (5-9 years)",
+    "Expert (10+ years)"
+  ]
+}
+```
+</CodeGroup>
+
+### Option Best Practices
+
+<Steps>
+  <Step title="Keep options clear">
+    Use concise, unambiguous labels. "Yes" and "No" instead of "Y" and "N".
+  </Step>
+  
+  <Step title="Logical ordering">
+    Arrange options in a meaningful order:
+    - Alphabetical (countries, states)
+    - Chronological (time ranges)
+    - Magnitude (Small to Large, Low to High)
+    - Frequency (Most common first)
+  </Step>
+  
+  <Step title="Include 'Other' when appropriate">
+    For incomplete lists, add "Other" or "Prefer not to say" options.
+  </Step>
+  
+  <Step title="Limit option count">
+    - Radio: 2-5 options (more than 5, consider select)
+    - Select: Works well with 5-50 options
+    - Checkbox: 3-10 options for best UX
+  </Step>
+</Steps>
+
+<Warning>
+Changing options after collecting responses can make existing data inconsistent. Plan options carefully before publishing.
+</Warning>
+
+## Field Organization Strategies
+
+### Grouping Related Fields
+
+While FastForms doesn't support visual field groups, you can use clear labeling:
+
+```json
+[
+  {
+    "id": "contact_name",
+    "type": "text",
+    "label": "Contact Information - Full Name"
+  },
+  {
+    "id": "contact_email",
+    "type": "email",
+    "label": "Contact Information - Email"
+  },
+  {
+    "id": "shipping_address",
+    "type": "text",
+    "label": "Shipping - Street Address"
+  }
+]
+```
+
+### Progressive Complexity
+
+Order fields from simple to complex:
+
+1. **Basic identification**: Name, email
+2. **Primary questions**: The main purpose of the form
+3. **Details**: Specific selections or preferences
+4. **Optional information**: Supplementary data
+
+### Required vs Optional
+
+Place required fields first to prevent frustration:
+
+```json
+[
+  { "id": "name", "required": true },
+  { "id": "email", "required": true },
+  { "id": "phone", "required": false },
+  { "id": "comments", "required": false }
+]
+```
+
+## Schema Validation Rules
+
+FastForms enforces strict validation to ensure form integrity:
+
+### Automatic Validation Checks
+
+<Accordion title="Unique Field IDs">
+  Every field must have a unique `id` within the form.
+  
+  ```json
+  // ❌ INVALID - Duplicate IDs
+  {
+    "fields": [
+      { "id": "email", "type": "email", "label": "Email" },
+      { "id": "email", "type": "text", "label": "Backup Email" }
+    ]
+  }
+  ```
+  
+  ```json
+  // ✅ VALID - Unique IDs
+  {
+    "fields": [
+      { "id": "primary_email", "type": "email", "label": "Email" },
+      { "id": "backup_email", "type": "email", "label": "Backup Email" }
+    ]
+  }
+  ```
+  
+  **Error message**: "Field IDs must be unique"
+</Accordion>
+
+<Accordion title="Options Required for Selection Fields">
+  Select, radio, and checkbox fields MUST have the `options` property with at least one option.
+  
+  ```json
+  // ❌ INVALID - Missing options
+  {
+    "id": "country",
+    "type": "select",
+    "label": "Country"
+  }
+  ```
+  
+  ```json
+  // ✅ VALID - Has options
+  {
+    "id": "country",
+    "type": "select",
+    "label": "Country",
+    "options": ["USA", "Canada", "UK"]
+  }
+  ```
+  
+  **Error message**: "Select/radio/checkbox fields must have options"
+</Accordion>
+
+<Accordion title="Minimum One Field Required">
+  Forms must have at least one field.
+  
+  ```json
+  // ❌ INVALID - No fields
+  {
+    "title": "Empty Form",
+    "fields": []
+  }
+  ```
+  
+  ```json
+  // ✅ VALID - Has fields
+  {
+    "title": "Contact Form",
+    "fields": [
+      { "id": "name", "type": "text", "label": "Name" }
+    ]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Required Field Properties">
+  Every field must have:
+  - `id` (non-empty string)
+  - `type` (valid field type enum)
+  - `label` (non-empty string)
+  
+  Optional properties are validated if present but can be omitted.
+</Accordion>
+
+## Customization via AI Prompts
+
+While you don't manually edit JSON schemas, understanding customization helps you write better AI prompts:
+
+### Requesting Specific Field Types
+
+```text
+"Customer feedback form with:
+- Name (text field, required)
+- Email (email field, required)
+- Rating (number field from 1 to 5, required)
+- Experience (radio buttons: Poor, Fair, Good, Excellent)
+- Comments (text area, optional, 500 character max)
+- Subscribe to newsletter (checkbox)"
+```
+
+### Specifying Validation
+
+```text
+"Event registration with:
+- Full name (required, at least 2 characters)
+- Age (number, must be 18 or older)
+- Number of tickets (number, 1 to 10 maximum)
+- Special requests (optional text area, up to 200 characters)"
+```
+
+### Defining Options
+
+```text
+"Product order form with:
+- Size dropdown: Small, Medium, Large, Extra Large
+- Color checkboxes: Red, Blue, Green, Black, White
+- Shipping speed radio: Standard (5-7 days), Express (2-3 days), Overnight"
+```
+
+<Tip>
+The AI understands natural language! You don't need to use technical terms—just describe what you want in plain English.
+</Tip>
+
+## Tips for Effective Customization
+
+### Start Simple
+
+Begin with basic fields and add complexity only when needed:
+
+1. Create a simple version first
+2. Test with preview mode
+3. Identify what's missing
+4. Generate a new form with refinements
+
+### Match Field Types to Data
+
+Choose field types that match your data format:
+
+| Data Type | Recommended Field |
+|-----------|------------------|
+| Person's name | `text` |
+| Email address | `email` |
+| Phone number | `text` (not `number`) |
+| Date of event | `date` |
+| Age | `number` with min validation |
+| Rating (1-5) | `number` with min/max OR `radio` |
+| Long feedback | `textarea` |
+| Single choice | `select` or `radio` |
+| Multiple choices | `checkbox` |
+| Documents | `file` |
+
+### Placeholder vs Label
+
+Understand the difference:
+
+- **Label**: Persistent description, always visible
+- **Placeholder**: Temporary hint, disappears on input
+
+```json
+{
+  "label": "Email Address",      // Always visible
+  "placeholder": "you@example.com"  // Disappears when typing
+}
+```
+
+<Note>
+Never put critical information only in placeholders—users won't see it after they start typing.
+</Note>
+
+### Testing Your Customizations
+
+After generating a form:
+
+1. ✅ Review all fields in preview mode
+2. ✅ Check that required fields are marked
+3. ✅ Verify selection fields have all options
+4. ✅ Test validation by publishing and submitting test data
+5. ✅ Check response data format in the responses page
+
+## Common Customization Patterns
+
+<AccordionGroup>
+  <Accordion title="Contact Form">
+    ```json
+    {
+      "title": "Contact Us",
+      "fields": [
+        {
+          "id": "name",
+          "type": "text",
+          "label": "Full Name",
+          "required": true
+        },
+        {
+          "id": "email",
+          "type": "email",
+          "label": "Email Address",
+          "required": true
+        },
+        {
+          "id": "subject",
+          "type": "select",
+          "label": "Subject",
+          "required": true,
+          "options": ["General Inquiry", "Support", "Sales", "Feedback"]
+        },
+        {
+          "id": "message",
+          "type": "textarea",
+          "label": "Message",
+          "required": true,
+          "validation": { "minLength": 10 }
+        }
+      ]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Event Registration">
+    ```json
+    {
+      "title": "Workshop Registration",
+      "fields": [
+        {
+          "id": "attendee_name",
+          "type": "text",
+          "label": "Attendee Name",
+          "required": true
+        },
+        {
+          "id": "email",
+          "type": "email",
+          "label": "Email",
+          "required": true
+        },
+        {
+          "id": "session",
+          "type": "radio",
+          "label": "Preferred Session",
+          "required": true,
+          "options": ["Morning (9-12)", "Afternoon (1-4)", "Evening (5-8)"]
+        },
+        {
+          "id": "dietary",
+          "type": "checkbox",
+          "label": "Dietary Restrictions",
+          "options": ["Vegetarian", "Vegan", "Gluten-Free", "None"]
+        },
+        {
+          "id": "guests",
+          "type": "number",
+          "label": "Number of Guests",
+          "validation": { "min": 0, "max": 3 }
+        }
+      ]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Survey Form">
+    ```json
+    {
+      "title": "Customer Satisfaction Survey",
+      "fields": [
+        {
+          "id": "overall_rating",
+          "type": "number",
+          "label": "Overall Satisfaction (1-10)",
+          "required": true,
+          "validation": { "min": 1, "max": 10 }
+        },
+        {
+          "id": "likelihood",
+          "type": "radio",
+          "label": "How likely are you to recommend us?",
+          "required": true,
+          "options": ["Very Unlikely", "Unlikely", "Neutral", "Likely", "Very Likely"]
+        },
+        {
+          "id": "features_used",
+          "type": "checkbox",
+          "label": "Which features have you used?",
+          "options": ["Feature A", "Feature B", "Feature C", "Feature D"]
+        },
+        {
+          "id": "comments",
+          "type": "textarea",
+          "label": "Additional Comments",
+          "placeholder": "Tell us more about your experience..."
+        }
+      ]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+<Note>
+Remember: FastForms uses AI to generate these schemas automatically. Use these examples to understand what's possible, then describe your needs in natural language when generating forms.
+</Note>

@@ -1,0 +1,279 @@
+---
+title: 'Export Responses'
+description: 'Retrieve and export form response data'
+---
+
+## Get Form Responses
+
+Retrieve all responses submitted to a specific form in JSON format.
+
+### Endpoint
+
+```
+GET /api/forms/[id]/responses
+```
+
+### Authentication
+
+Requires Clerk authentication. You can only access responses for forms you own.
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the form whose responses you want to retrieve
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Always `true` for successful requests
+</ResponseField>
+
+<ResponseField name="formTitle" type="string">
+  The title of the form
+</ResponseField>
+
+<ResponseField name="totalResponses" type="number">
+  Total count of responses
+</ResponseField>
+
+<ResponseField name="responses" type="array">
+  Array of response objects, ordered by submission date (newest first)
+  
+  <Expandable title="Response Object Properties">
+    <ResponseField name="id" type="string">
+      Unique response identifier
+    </ResponseField>
+    
+    <ResponseField name="data" type="object">
+      The submitted form data - structure varies based on form fields
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp of when the response was submitted
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET https://your-domain.com/api/forms/cm3x7y2z1a0b1c2d3e4f5/responses \
+  -H "Cookie: __session=your-clerk-session"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "formTitle": "Customer Feedback Form",
+  "totalResponses": 2,
+  "responses": [
+    {
+      "id": "cm3z1a2b3c4d5e6f7g8h9",
+      "data": {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "rating": 5,
+        "comments": "Great service!"
+      },
+      "createdAt": "2026-03-03T09:15:00.000Z"
+    },
+    {
+      "id": "cm3a9b8c7d6e5f4g3h2i1",
+      "data": {
+        "name": "Jane Smith",
+        "email": "jane@example.com",
+        "rating": 4,
+        "comments": "Very helpful!"
+      },
+      "createdAt": "2026-03-02T14:30:00.000Z"
+    }
+  ]
+}
+```
+
+### Error Responses
+
+<Expandable title="400 Bad Request">
+```json
+{
+  "error": "Form ID is required and cannot be empty"
+}
+```
+Returned when the form ID parameter is missing or empty.
+</Expandable>
+
+<Expandable title="401 Unauthorized">
+```json
+{
+  "error": "Unauthorized"
+}
+```
+Returned when:
+- No authentication session is present
+- The authenticated user does not own the form
+</Expandable>
+
+<Expandable title="404 Not Found">
+```json
+{
+  "error": "Form not found"
+}
+```
+Returned when the form ID does not exist.
+</Expandable>
+
+Source: `app/api/forms/[id]/responses/route.ts:5`
+
+---
+
+## Export Responses
+
+Export all form responses as a downloadable CSV file (or other formats in the future).
+
+### Endpoint
+
+```
+GET /api/forms/[id]/export
+```
+
+### Authentication
+
+Requires Clerk authentication. You can only export responses for forms you own.
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the form whose responses you want to export
+</ParamField>
+
+<ParamField query="format" type="string" default="csv">
+  Export format. Currently only `csv` is supported.
+</ParamField>
+
+### Response
+
+Returns a file download with appropriate headers:
+
+- **Content-Type**: `text/csv` (for CSV format)
+- **Content-Disposition**: `attachment; filename="{form-title}.csv"`
+
+The CSV file includes:
+- A header row with field names plus "Submitted At"
+- One row per response
+- Timestamp in ISO 8601 format
+
+### Example Request
+
+```bash
+# Export as CSV (default)
+curl -X GET https://your-domain.com/api/forms/cm3x7y2z1a0b1c2d3e4f5/export \
+  -H "Cookie: __session=your-clerk-session" \
+  -o responses.csv
+
+# Explicitly specify CSV format
+curl -X GET "https://your-domain.com/api/forms/cm3x7y2z1a0b1c2d3e4f5/export?format=csv" \
+  -H "Cookie: __session=your-clerk-session" \
+  -o responses.csv
+```
+
+### Example CSV Output
+
+```csv
+name,email,rating,comments,Submitted At
+John Doe,john@example.com,5,Great service!,2026-03-03T09:15:00.000Z
+Jane Smith,jane@example.com,4,Very helpful!,2026-03-02T14:30:00.000Z
+```
+
+### Error Responses
+
+<Expandable title="401 Unauthorized">
+```json
+{
+  "error": "Unauthorized"
+}
+```
+Returned when:
+- No authentication session is present
+- The authenticated user does not own the form
+</Expandable>
+
+<Expandable title="404 Not Found - Form">
+```json
+{
+  "error": "Form not found"
+}
+```
+Returned when the form ID does not exist.
+</Expandable>
+
+<Expandable title="404 Not Found - No Responses">
+Returns plain text response:
+```
+No responses to export
+```
+Returned when the form exists but has no responses yet.
+</Expandable>
+
+<Expandable title="400 Bad Request">
+```json
+{
+  "error": "Unsupported export format"
+}
+```
+Returned when the `format` parameter specifies an unsupported format.
+</Expandable>
+
+<Expandable title="500 Internal Server Error">
+```json
+{
+  "error": "Failed to export form"
+}
+```
+Returned when export generation or database operation fails.
+</Expandable>
+
+### Implementation Details
+
+The export process:
+
+1. Validates user authentication and form ownership
+2. Retrieves the form title and user ID
+3. Fetches all responses for the form
+4. Formats responses with timestamps in ISO 8601 format
+5. Passes data to the appropriate exporter (CSV by default)
+6. Returns file with proper MIME type and download headers
+
+Source: `app/api/forms/[id]/export/route.ts:6`
+
+### Export Formats
+
+Currently supported formats:
+- **csv** - Comma-separated values (default)
+
+The export system is designed to support additional formats in the future by adding new exporters to `lib/exporter.ts`.
+
+### Using with JavaScript
+
+```javascript
+// Trigger CSV download
+async function exportFormResponses(formId) {
+  const response = await fetch(`/api/forms/${formId}/export?format=csv`, {
+    credentials: 'include' // Include Clerk session cookie
+  });
+  
+  if (response.ok) {
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'form-responses.csv';
+    a.click();
+  } else {
+    const error = await response.json();
+    console.error('Export failed:', error);
+  }
+}
+```
