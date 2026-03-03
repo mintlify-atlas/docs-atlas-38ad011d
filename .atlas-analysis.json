@@ -1,0 +1,77 @@
+{
+  "projectType": "saas",
+  "projectName": "FastForms",
+  "projectDescription": "AI-powered form builder that generates fully structured, shareable forms in seconds with automated response collection and analytics.",
+  "theme": "palm",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#6D28D9",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/ai-generation",
+              "features/form-management",
+              "features/response-collection",
+              "features/export-analytics"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/best-practices",
+              "guides/sharing-forms",
+              "guides/customization"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/overview",
+              "api/generate-form",
+              "api/manage-forms",
+              "api/submit-response",
+              "api/export-responses"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AI-powered form generation using natural language prompts",
+    "Real-time form builder with drag-and-drop interface",
+    "Shareable forms via unique URLs",
+    "Response collection and management dashboard",
+    "Export responses to CSV and other formats",
+    "Authentication and user management with Clerk",
+    "Form validation and required field enforcement",
+    "PostgreSQL database with Prisma ORM"
+  ],
+  "publicApiSurface": [
+    "POST /api/forms/generate - Generate form from AI prompt",
+    "POST /api/forms/submit - Submit form response",
+    "GET /api/getAllForms - Get all user forms",
+    "GET /api/forms/[id] - Get specific form",
+    "DELETE /api/forms/[id] - Delete form",
+    "GET /api/forms/[id]/responses - Get form responses",
+    "GET /api/forms/[id]/export - Export responses to CSV"
+  ]
+}
